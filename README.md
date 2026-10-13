@@ -120,11 +120,8 @@
     color: var(--accent-soft);
   }
 
-  .options input:checked + span {
-    color: var(--bg);
-  }
-
-  .options label:has(input:checked) {
+  /* Подсветка выбранного варианта — через класс .selected, который ставит JS */
+  .options label.selected {
     background: var(--accent);
     color: var(--bg);
     border-color: var(--accent);
@@ -223,6 +220,7 @@
 
   .score-fill {
     height: 100%;
+    width: 0;
     background: var(--accent);
     border-radius: 3px;
     transition: width 0.8s ease;
@@ -343,7 +341,6 @@ const questions = [
   "Люди часто видят во мне наставника или авторитет, даже если я этого не прошу."
 ];
 
-// Вопросы нумеруются с 1, поэтому индексы -1
 const characters = [
   {
     key: "richard",
@@ -392,53 +389,80 @@ const characters = [
 /* ==================== ЛОГИКА ==================== */
 
 const MAX_PER_CHARACTER = 25; // 5 вопросов * 5 баллов
-const answers = {}; // { questionNumber: value }
+const answers = {};           // { questionNumber: value }
 
-function startTest() {
-  document.getElementById('screen-start').style.display = 'none';
-  document.getElementById('screen-quiz').style.display = 'block';
-  renderQuiz();
+/* --- Экраны --- */
+function showScreen(id) {
+  ['screen-start', 'screen-quiz', 'screen-result'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.style.display = (s === id) ? 'block' : 'none';
+  });
   window.scrollTo(0, 0);
 }
 
+/* --- Старт --- */
+function startTest() {
+  renderQuiz();
+  showScreen('screen-quiz');
+}
+
+/* --- Рендер вопросов --- */
 function renderQuiz() {
   const form = document.getElementById('quizForm');
-  form.innerHTML = questions.map((q, i) => {
+  let html = '';
+
+  questions.forEach((q, i) => {
     const num = i + 1;
-    const opts = [1, 2, 3, 4, 5].map(v => `
-      <label>
-        <input type="radio" name="q${num}" value="${v}" onchange="onAnswer(${num}, ${v})">
-        <span>${v}</span>
-      </label>
-    `).join('');
-    return `
+    let opts = '';
+    for (let v = 1; v <= 5; v++) {
+      // data-атрибуты вместо inline onclick — надёжнее и безопаснее
+      opts += `
+        <label data-q="${num}" data-v="${v}">
+          <input type="radio" name="q${num}" value="${v}">
+          <span>${v}</span>
+        </label>`;
+    }
+    html += `
       <div class="question">
         <div class="q-text"><span class="q-num">${num}.</span><span>${q}</span></div>
         <div class="options">${opts}</div>
-      </div>
-    `;
-  }).join('');
+      </div>`;
+  });
+
+  form.innerHTML = html;
+
+  // Один делегированный обработчик на всю форму
+  form.addEventListener('change', (e) => {
+    const input = e.target;
+    if (input && input.type === 'radio' && input.name.startsWith('q')) {
+      const num = parseInt(input.name.slice(1), 10);
+      answers[num] = parseInt(input.value, 10);
+
+      // Подсветка выбранной опции
+      const group = form.querySelectorAll(`label[data-q="${num}"]`);
+      group.forEach(lbl => lbl.classList.remove('selected'));
+      const chosenLabel = input.closest('label');
+      if (chosenLabel) chosenLabel.classList.add('selected');
+
+      // Сброс сообщения об ошибке
+      const err = document.getElementById('errorMsg');
+      if (err) err.textContent = '';
+    }
+  });
 }
 
-function onAnswer(num, val) {
-  answers[num] = val;
-  document.getElementById('errorMsg').textContent = '';
-}
-
+/* --- Отправка --- */
 function submitQuiz() {
   const total = questions.length;
-  const answered = Object.keys(answers).length;
+  const missing = [];
+  for (let i = 1; i <= total; i++) {
+    if (!answers[i]) missing.push(i);
+  }
 
-  if (answered < total) {
-    const missing = [];
-    for (let i = 1; i <= total; i++) {
-      if (!answers[i]) missing.push(i);
-    }
+  if (missing.length > 0) {
     document.getElementById('errorMsg').textContent =
       `Пожалуйста, ответьте на все вопросы. Осталось: ${missing.length}.`;
-    // Прокрутка к первому неотвеченному
-    const firstMissing = missing[0];
-    const el = document.querySelectorAll('.question')[firstMissing - 1];
+    const el = document.querySelectorAll('.question')[missing[0] - 1];
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
@@ -446,70 +470,56 @@ function submitQuiz() {
   // Подсчёт баллов
   const scores = characters.map(ch => {
     const sum = ch.questions.reduce((acc, qn) => acc + (answers[qn] || 0), 0);
-    return { ...ch, score: sum };
+    return { name: ch.name, desc: ch.desc, score: sum };
   });
 
-  // Сортировка по убыванию
   scores.sort((a, b) => b.score - a.score);
-
   showResult(scores);
 }
 
+/* --- Показ результата --- */
 function showResult(scores) {
-  document.getElementById('screen-quiz').style.display = 'none';
-  const resultScreen = document.getElementById('screen-result');
-  resultScreen.style.display = 'block';
-
   const winner = scores[0];
   const runnerUp = scores[1];
 
   document.getElementById('resultName').textContent = winner.name;
 
   let descHtml = winner.desc;
-  // Если разница маленькая — добавим смешанный тип
   if (runnerUp && (winner.score - runnerUp.score) <= 3) {
     descHtml += `<br><br><em style="color:var(--muted)">Вы — смешанный тип: черты ${winner.name} и ${runnerUp.name} у вас выражены почти одинаково сильно.</em>`;
   }
   document.getElementById('resultDesc').innerHTML = descHtml;
 
-  // Список баллов
   const list = document.getElementById('scoreList');
   list.innerHTML = scores.map(s => {
     const percent = Math.round((s.score / MAX_PER_CHARACTER) * 100);
     return `
       <div class="score-row">
         <div class="score-name">${s.name}</div>
-        <div class="score-bar"><div class="score-fill" style="width:${percent}%"></div></div>
+        <div class="score-bar"><div class="score-fill" data-width="${percent}"></div></div>
         <div class="score-val">${s.score}/${MAX_PER_CHARACTER}</div>
-      </div>
-    `;
+      </div>`;
   }).join('');
 
-  window.scrollTo(0, 0);
-}
+  showScreen('screen-result');
 
-function restart() {
-  // Сброс ответов
-  Object.keys(answers).forEach(k => delete answers[k]);
-  document.getElementById('quizForm').reset();
-  document.getElementById('errorMsg').textContent = '';
-
-  document.getElementById('screen-result').style.display = 'none';
-  document.getElementById('screen-start').style.display = 'block';
-  window.scrollTo(0, 0);
-}
-
-// Плавная анимация полосок после рендера
-window.addEventListener('load', () => {
-  const observer = new MutationObserver(() => {
-    document.querySelectorAll('.score-fill').forEach(el => {
-      const w = el.style.width;
-      el.style.width = '0';
-      requestAnimationFrame(() => { el.style.width = w; });
+  // Плавная анимация полосок: сначала 0, затем нужная ширина
+  requestAnimationFrame(() => {
+    list.querySelectorAll('.score-fill').forEach(el => {
+      el.style.width = el.dataset.width + '%';
     });
   });
-  observer.observe(document.getElementById('scoreList'), { childList: true });
-});
+}
+
+/* --- Рестарт --- */
+function restart() {
+  Object.keys(answers).forEach(k => delete answers[k]);
+  const form = document.getElementById('quizForm');
+  if (form) form.reset();
+  document.getElementById('errorMsg').textContent = '';
+  document.getElementById('scoreList').innerHTML = '';
+  showScreen('screen-start');
+}
 </script>
 </body>
 </html>
