@@ -211,7 +211,7 @@
     font-size: 14px;
   }
 
-  .score-name { width: 160px; color: var(--muted); }
+  .score-name { width: 130px; color: var(--muted); }
 
   .score-bar {
     flex: 1;
@@ -253,7 +253,6 @@
     .result-name { font-size: 30px; }
     .options { padding-left: 0; }
     .options label { min-width: 50px; font-size: 12px; padding: 7px 3px; }
-    .score-name { width: 120px; font-size: 13px; }
   }
 </style>
 </head>
@@ -422,7 +421,7 @@ function renderQuiz() {
 }
 
 function onAnswer(num, val) {
-  answers[num"] = val;
+  answers[num] = val;
   document.getElementById('errorMsg').textContent = '';
 }
 
@@ -480,7 +479,7 @@ function showResult(scores) {
     return `
       <div class="score-row">
         <div class="score-name">${s.name}</div>
-        <div class="score-bar"><div class="score-fill style="width:${percent}%"></div></div>
+        <div class="score-bar"><div class="score-fill" style="width:${percent}%"></div></div>
         <div class="score-val">${s.score}/${MAX_PER_CHARACTER}</div>
       </div>
     `;
