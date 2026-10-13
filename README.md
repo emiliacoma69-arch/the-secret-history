@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -210,7 +211,7 @@
     font-size: 14px;
   }
 
-  .score-name { width: 130px; color: var(--muted); }
+  .score-name { width: 160px; color: var(--muted); }
 
   .score-bar {
     flex: 1;
@@ -252,6 +253,7 @@
     .result-name { font-size: 30px; }
     .options { padding-left: 0; }
     .options label { min-width: 50px; font-size: 12px; padding: 7px 3px; }
+    .score-name { width: 120px; font-size: 13px; }
   }
 </style>
 </head>
@@ -346,7 +348,7 @@ const questions = [
 const characters = [
   {
     key: "richard",
-    name: "Ричард Папен",
+    name: "Ричард Пэйпен",
     questions: [1, 8, 15, 22, 29],
     desc: "Вы — наблюдатель и аутсайдер, который очень хочет принадлежать к «избранному» кругу. Вы чувствительны к атмосфере, умеете подстраиваться, но иногда идеализируете людей и избегаете прямой ответственности. Ваш ресурс — эмпатия, наблюдательность и способность видеть скрытые мотивы. Тень — пассивность, зависимость от чужого одобрения и моральная нерешительность."
   },
@@ -358,7 +360,7 @@ const characters = [
   },
   {
     key: "bunny",
-    name: "Банни Кораган",
+    name: "Банни Коркоран",
     questions: [3, 10, 17, 24, 31],
     desc: "Вы — социальный, яркий, гедонистичный человек. Вы легко заводите знакомства, любите внимание, юмор и удовольствия. Ваш ресурс — обаяние, живость и умение создавать настроение. Тень — зависимость от одобрения, инфантильность, манипулятивность и страх остаться незамеченным."
   },
@@ -370,13 +372,13 @@ const characters = [
   },
   {
     key: "charles",
-    name: "Чарльз Макоули",
+    name: "Чарльз Маколей",
     questions: [5, 12, 19, 26, 33],
     desc: "Вы — импульсивный, страстный и эмоционально интенсивный человек. Чувства у вас часто сильнее разума, а в близких отношениях возможны ревность и собственничество. Ваш ресурс — страстность, честность в эмоциях и способность на сильную привязанность. Тень — нестабильность, склонность к саморазрушению и зависимостям."
   },
   {
     key: "camilla",
-    name: "Камилла Макоули",
+    name: "Камилла Маколей",
     questions: [6, 13, 20, 27, 34],
     desc: "Вы — загадочная, сдержанная и выживающая фигура. Вы умеете держать дистанцию, приспосабливаться и не показывать слабость. Ваш ресурс — стойкость, грация и внутренняя сила. Тень — эмоциональная закрытость, недоверие и трудность в том, чтобы позволить кому-то подойти слишком близко."
   },
@@ -420,7 +422,7 @@ function renderQuiz() {
 }
 
 function onAnswer(num, val) {
-  answers[num] = val;
+  answers[num"] = val;
   document.getElementById('errorMsg').textContent = '';
 }
 
@@ -478,7 +480,7 @@ function showResult(scores) {
     return `
       <div class="score-row">
         <div class="score-name">${s.name}</div>
-        <div class="score-bar"><div class="score-fill" style="width:${percent}%"></div></div>
+        <div class="score-bar"><div class="score-fill style="width:${percent}%"></div></div>
         <div class="score-val">${s.score}/${MAX_PER_CHARACTER}</div>
       </div>
     `;
@@ -500,7 +502,6 @@ function restart() {
 
 // Плавная анимация полосок после рендера
 window.addEventListener('load', () => {
-  // Небольшой хак, чтобы полоски «доехали» после появления
   const observer = new MutationObserver(() => {
     document.querySelectorAll('.score-fill').forEach(el => {
       const w = el.style.width;
