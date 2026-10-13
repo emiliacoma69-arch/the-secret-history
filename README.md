@@ -58,7 +58,6 @@
   .intro {
     font-size: 16px;
     margin-bottom: 30px;
-    color: var(--text);
   }
 
   .scale-hint {
@@ -120,7 +119,6 @@
     color: var(--accent-soft);
   }
 
-  /* Подсветка выбранного варианта — через класс .selected, который ставит JS */
   .options label.selected {
     background: var(--accent);
     color: var(--bg);
@@ -144,12 +142,6 @@
 
   .btn:hover { background: var(--accent-soft); }
 
-  .btn:disabled {
-    background: var(--border);
-    color: var(--muted);
-    cursor: not-allowed;
-  }
-
   .error {
     color: #c97070;
     text-align: center;
@@ -158,7 +150,6 @@
     min-height: 20px;
   }
 
-  /* Результат */
   .result { display: none; text-align: center; }
 
   .result h2 {
@@ -181,7 +172,6 @@
     text-align: left;
     margin-top: 30px;
     font-size: 16px;
-    color: var(--text);
   }
 
   .scores {
@@ -257,7 +247,7 @@
 <body>
 <div class="container">
 
-  <!-- ЭКРАН 1: Приветствие -->
+  <!-- ЭКРАН 1 -->
   <div id="screen-start">
     <h1>Кто ты из «Тайной истории»?</h1>
     <p class="subtitle">Психологический тест по роману Донны Тартт</p>
@@ -272,19 +262,19 @@
       <strong>4</strong> — скорее да &nbsp;·&nbsp;
       <strong>5</strong> — очень про меня
     </div>
-    <button class="btn" onclick="startTest()">Начать тест</button>
+    <button class="btn" id="startBtn" type="button">Начать тест</button>
   </div>
 
-  <!-- ЭКРАН 2: Вопросы -->
+  <!-- ЭКРАН 2 -->
   <div id="screen-quiz" style="display:none;">
     <h1>Кто ты из «Тайной истории»?</h1>
     <p class="subtitle">Донна Тартт · 35 утверждений</p>
     <form id="quizForm"></form>
     <div class="error" id="errorMsg"></div>
-    <button class="btn" id="submitBtn" onclick="submitQuiz()">Узнать результат</button>
+    <button class="btn" id="submitBtn" type="button">Узнать результат</button>
   </div>
 
-  <!-- ЭКРАН 3: Результат -->
+  <!-- ЭКРАН 3 -->
   <div id="screen-result" class="result">
     <h2>Ваш архетип</h2>
     <div class="result-name" id="resultName"></div>
@@ -295,231 +285,245 @@
       <div id="scoreList"></div>
     </div>
 
-    <button class="btn restart" onclick="restart()">Пройти заново</button>
+    <button class="btn restart" id="restartBtn" type="button">Пройти заново</button>
   </div>
 
 </div>
 
 <script>
-/* ==================== ДАННЫЕ ==================== */
+(function () {
+  'use strict';
 
-const questions = [
-  "Я часто чувствую себя чужим в компании, к которой хочу принадлежать.",
-  "Я предпочитаю холодный расчёт и стратегию эмоциональным порывам.",
-  "Я легко завожу разговор и умею быть в центре внимания.",
-  "Я очень чувствителен к атмосфере, красоте и эстетике.",
-  "Мои чувства и желания часто сильнее меня.",
-  "Я произвожу впечатление спокойной и загадочной, хотя внутри много чувств.",
-  "Я ценю интеллект, вкус и культурную изысканность выше обыденности.",
-  "Я склонен идеализировать людей, которые кажутся мне уверенными и «избранными».",
-  "Мне важно сохранять контроль над собой и ситуацией.",
-  "Мне нужно, чтобы меня замечали, одобряли и любили.",
-  "Я часто тревожусь и предпочёл бы избежать конфликта.",
-  "Я склонен к ревности и собственничеству в близких отношениях.",
-  "Я умею приспосабливаться к обстоятельствам, чтобы выжить.",
-  "Я предпочитаю держать дистанцию и не пускать людей слишком близко.",
-  "Я могу скрывать своё прошлое или происхождение, чтобы меня приняли.",
-  "Я считаю, что цель может оправдывать средства, если речь о важном.",
-  "Я люблю удовольствия, веселье и не люблю скуку и ограничения.",
-  "Мне важно иметь рядом человека, который поддержит и успокоит.",
-  "Я могу быть разрушительным для себя и других, когда мне плохо.",
-  "Я не люблю показывать слабость и предпочитаю держать дистанцию.",
-  "Я умею создавать вокруг себя атмосферу исключительности.",
-  "В конфликте мне легче промолчать или подстроиться, чем открыто возразить.",
-  "Я часто ощущаю внутреннее одиночество, даже среди близких.",
-  "Я могу давить на людей, шутить колко или провоцировать, чтобы получить своё.",
-  "Я могу скрывать свою настоящую сущность из страха осуждения.",
-  "Я ищу сильные ощущения, чтобы заглушить внутреннюю боль.",
-  "Я могу быть преданной, но не позволяю собой управлять.",
-  "Я склонен закрывать глаза на неприятную реальность, если она разрушает красоту.",
-  "Я наблюдаю за другими и мысленно примеряю их жизнь на себя.",
-  "Я могу казаться спокойным, когда внутри всё сложно.",
-  "В глубине души я боюсь, что без обаяния меня не будут ценить.",
-  "Я ищу комфорт, изящество и эмоциональную безопасность.",
-  "Мои настроение и поведение могут резко меняться.",
-  "Я часто оказываюсь сильнее, чем обо мне думают.",
-  "Люди часто видят во мне наставника или авторитет, даже если я этого не прошу."
-];
+  /* ==================== ДАННЫЕ ==================== */
 
-const characters = [
-  {
-    key: "richard",
-    name: "Ричард Пэйпен",
-    questions: [1, 8, 15, 22, 29],
-    desc: "Вы — наблюдатель и аутсайдер, который очень хочет принадлежать к «избранному» кругу. Вы чувствительны к атмосфере, умеете подстраиваться, но иногда идеализируете людей и избегаете прямой ответственности. Ваш ресурс — эмпатия, наблюдательность и способность видеть скрытые мотивы. Тень — пассивность, зависимость от чужого одобрения и моральная нерешительность."
-  },
-  {
-    key: "henry",
-    name: "Генри Уинтер",
-    questions: [2, 9, 16, 23, 30],
-    desc: "Вы — стратег, интеллектуал и стоик. Вы цените контроль, ясность и внутреннюю дисциплину, умеете сохранять спокойствие в кризисе. Ваш ресурс — воля, ум и способность видеть картину целиком. Тень — холодность, отстранённость, склонность оправдывать средства целью и одиночество даже среди близких."
-  },
-  {
-    key: "bunny",
-    name: "Банни Коркоран",
-    questions: [3, 10, 17, 24, 31],
-    desc: "Вы — социальный, яркий, гедонистичный человек. Вы легко заводите знакомства, любите внимание, юмор и удовольствия. Ваш ресурс — обаяние, живость и умение создавать настроение. Тень — зависимость от одобрения, инфантильность, манипулятивность и страх остаться незамеченным."
-  },
-  {
-    key: "francis",
-    name: "Фрэнсис Абернати",
-    questions: [4, 11, 18, 25, 32],
-    desc: "Вы — чувствительный эстет и тревожный наблюдатель. Вы цените красоту, комфорт и эмоциональную безопасность, но часто избегаете конфликтов и прячете свою настоящую сущность. Ваш ресурс — вкус, мягкость и глубокая эмоциональность. Тень — избегание, зависимость от поддержки и склонность закрывать глаза на проблемы."
-  },
-  {
-    key: "charles",
-    name: "Чарльз Маколей",
-    questions: [5, 12, 19, 26, 33],
-    desc: "Вы — импульсивный, страстный и эмоционально интенсивный человек. Чувства у вас часто сильнее разума, а в близких отношениях возможны ревность и собственничество. Ваш ресурс — страстность, честность в эмоциях и способность на сильную привязанность. Тень — нестабильность, склонность к саморазрушению и зависимостям."
-  },
-  {
-    key: "camilla",
-    name: "Камилла Маколей",
-    questions: [6, 13, 20, 27, 34],
-    desc: "Вы — загадочная, сдержанная и выживающая фигура. Вы умеете держать дистанцию, приспосабливаться и не показывать слабость. Ваш ресурс — стойкость, грация и внутренняя сила. Тень — эмоциональная закрытость, недоверие и трудность в том, чтобы позволить кому-то подойти слишком близко."
-  },
-  {
-    key: "julian",
-    name: "Джулиан Морроу",
-    questions: [7, 14, 21, 28, 35],
-    desc: "Вы — наставник-эстет, интеллектуальный авторитет и создатель атмосферы исключительности. Вы цените вкус, культуру и дистанцию, умеете вдохновлять, но не любите грязную реальность. Ваш ресурс — харизма, эрудиция и чувство формы. Тень — элитизм, отстранённость и склонность прятаться от последствий в красивых идеях."
-  }
-];
+  var questions = [
+    "Я часто чувствую себя чужим в компании, к которой хочу принадлежать.",
+    "Я предпочитаю холодный расчёт и стратегию эмоциональным порывам.",
+    "Я легко завожу разговор и умею быть в центре внимания.",
+    "Я очень чувствителен к атмосфере, красоте и эстетике.",
+    "Мои чувства и желания часто сильнее меня.",
+    "Я произвожу впечатление спокойной и загадочной, хотя внутри много чувств.",
+    "Я ценю интеллект, вкус и культурную изысканность выше обыденности.",
+    "Я склонен идеализировать людей, которые кажутся мне уверенными и «избранными».",
+    "Мне важно сохранять контроль над собой и ситуацией.",
+    "Мне нужно, чтобы меня замечали, одобряли и любили.",
+    "Я часто тревожусь и предпочёл бы избежать конфликта.",
+    "Я склонен к ревности и собственничеству в близких отношениях.",
+    "Я умею приспосабливаться к обстоятельствам, чтобы выжить.",
+    "Я предпочитаю держать дистанцию и не пускать людей слишком близко.",
+    "Я могу скрывать своё прошлое или происхождение, чтобы меня приняли.",
+    "Я считаю, что цель может оправдывать средства, если речь о важном.",
+    "Я люблю удовольствия, веселье и не люблю скуку и ограничения.",
+    "Мне важно иметь рядом человека, который поддержит и успокоит.",
+    "Я могу быть разрушительным для себя и других, когда мне плохо.",
+    "Я не люблю показывать слабость и предпочитаю держать дистанцию.",
+    "Я умею создавать вокруг себя атмосферу исключительности.",
+    "В конфликте мне легче промолчать или подстроиться, чем открыто возразить.",
+    "Я часто ощущаю внутреннее одиночество, даже среди близких.",
+    "Я могу давить на людей, шутить колко или провоцировать, чтобы получить своё.",
+    "Я могу скрывать свою настоящую сущность из страха осуждения.",
+    "Я ищу сильные ощущения, чтобы заглушить внутреннюю боль.",
+    "Я могу быть преданной, но не позволяю собой управлять.",
+    "Я склонен закрывать глаза на неприятную реальность, если она разрушает красоту.",
+    "Я наблюдаю за другими и мысленно примеряю их жизнь на себя.",
+    "Я могу казаться спокойным, когда внутри всё сложно.",
+    "В глубине души я боюсь, что без обаяния меня не будут ценить.",
+    "Я ищу комфорт, изящество и эмоциональную безопасность.",
+    "Мои настроение и поведение могут резко меняться.",
+    "Я часто оказываюсь сильнее, чем обо мне думают.",
+    "Люди часто видят во мне наставника или авторитет, даже если я этого не прошу."
+  ];
 
-/* ==================== ЛОГИКА ==================== */
-
-const MAX_PER_CHARACTER = 25; // 5 вопросов * 5 баллов
-const answers = {};           // { questionNumber: value }
-
-/* --- Экраны --- */
-function showScreen(id) {
-  ['screen-start', 'screen-quiz', 'screen-result'].forEach(s => {
-    const el = document.getElementById(s);
-    if (el) el.style.display = (s === id) ? 'block' : 'none';
-  });
-  window.scrollTo(0, 0);
-}
-
-/* --- Старт --- */
-function startTest() {
-  renderQuiz();
-  showScreen('screen-quiz');
-}
-
-/* --- Рендер вопросов --- */
-function renderQuiz() {
-  const form = document.getElementById('quizForm');
-  let html = '';
-
-  questions.forEach((q, i) => {
-    const num = i + 1;
-    let opts = '';
-    for (let v = 1; v <= 5; v++) {
-      // data-атрибуты вместо inline onclick — надёжнее и безопаснее
-      opts += `
-        <label data-q="${num}" data-v="${v}">
-          <input type="radio" name="q${num}" value="${v}">
-          <span>${v}</span>
-        </label>`;
+  var characters = [
+    {
+      name: "Ричард Пэйпен",
+      questions: [1, 8, 15, 22, 29],
+      desc: "Вы — наблюдатель и аутсайдер, который очень хочет принадлежать к «избранному» кругу. Вы чувствительны к атмосфере, умеете подстраиваться, но иногда идеализируете людей и избегаете прямой ответственности. Ваш ресурс — эмпатия, наблюдательность и способность видеть скрытые мотивы. Тень — пассивность, зависимость от чужого одобрения и моральная нерешительность."
+    },
+    {
+      name: "Генри Уинтер",
+      questions: [2, 9, 16, 23, 30],
+      desc: "Вы — стратег, интеллектуал и стоик. Вы цените контроль, ясность и внутреннюю дисциплину, умеете сохранять спокойствие в кризисе. Ваш ресурс — воля, ум и способность видеть картину целиком. Тень — холодность, отстранённость, склонность оправдывать средства целью и одиночество даже среди близких."
+    },
+    {
+      name: "Банни Коркоран",
+      questions: [3, 10, 17, 24, 31],
+      desc: "Вы — социальный, яркий, гедонистичный человек. Вы легко заводите знакомства, любите внимание, юмор и удовольствия. Ваш ресурс — обаяние, живость и умение создавать настроение. Тень — зависимость от одобрения, инфантильность, манипулятивность и страх остаться незамеченным."
+    },
+    {
+      name: "Фрэнсис Абернати",
+      questions: [4, 11, 18, 25, 32],
+      desc: "Вы — чувствительный эстет и тревожный наблюдатель. Вы цените красоту, комфорт и эмоциональную безопасность, но часто избегаете конфликтов и прячете свою настоящую сущность. Ваш ресурс — вкус, мягкость и глубокая эмоциональность. Тень — избегание, зависимость от поддержки и склонность закрывать глаза на проблемы."
+    },
+    {
+      name: "Чарльз Маколей",
+      questions: [5, 12, 19, 26, 33],
+      desc: "Вы — импульсивный, страстный и эмоционально интенсивный человек. Чувства у вас часто сильнее разума, а в близких отношениях возможны ревность и собственничество. Ваш ресурс — страстность, честность в эмоциях и способность на сильную привязанность. Тень — нестабильность, склонность к саморазрушению и зависимостям."
+    },
+    {
+      name: "Камилла Маколей",
+      questions: [6, 13, 20, 27, 34],
+      desc: "Вы — загадочная, сдержанная и выживающая фигура. Вы умеете держать дистанцию, приспосабливаться и не показывать слабость. Ваш ресурс — стойкость, грация и внутренняя сила. Тень — эмоциональная закрытость, недоверие и трудность в том, чтобы позволить кому-то подойти слишком близко."
+    },
+    {
+      name: "Джулиан Морроу",
+      questions: [7, 14, 21, 28, 35],
+      desc: "Вы — наставник-эстет, интеллектуальный авторитет и создатель атмосферы исключительности. Вы цените вкус, культуру и дистанцию, умеете вдохновлять, но не любите грязную реальность. Ваш ресурс — харизма, эрудиция и чувство формы. Тень — элитизм, отстранённость и склонность прятаться от последствий в красивых идеях."
     }
-    html += `
-      <div class="question">
-        <div class="q-text"><span class="q-num">${num}.</span><span>${q}</span></div>
-        <div class="options">${opts}</div>
-      </div>`;
-  });
+  ];
 
-  form.innerHTML = html;
+  /* ==================== ЛОГИКА ==================== */
 
-  // Один делегированный обработчик на всю форму
-  form.addEventListener('change', (e) => {
-    const input = e.target;
-    if (input && input.type === 'radio' && input.name.startsWith('q')) {
-      const num = parseInt(input.name.slice(1), 10);
+  var MAX_PER_CHARACTER = 25;
+  var answers = {};
+
+  function showScreen(id) {
+    var ids = ['screen-start', 'screen-quiz', 'screen-result'];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el) el.style.display = (ids[i] === id) ? 'block' : 'none';
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function renderQuiz() {
+    var form = document.getElementById('quizForm');
+    if (!form) return;
+
+    var html = '';
+    for (var i = 0; i < questions.length; i++) {
+      var num = i + 1;
+      var opts = '';
+      for (var v = 1; v <= 5; v++) {
+        opts += '<label data-q="' + num + '">' +
+                  '<input type="radio" name="q' + num + '" value="' + v + '">' +
+                  '<span>' + v + '</span>' +
+                '</label>';
+      }
+      html += '<div class="question">' +
+                '<div class="q-text"><span class="q-num">' + num + '.</span>' +
+                '<span>' + questions[i] + '</span></div>' +
+                '<div class="options">' + opts + '</div>' +
+              '</div>';
+    }
+    form.innerHTML = html;
+
+    // Делегированный обработчик
+    form.onchange = function (e) {
+      var input = e.target;
+      if (!input || input.type !== 'radio' || input.name.charAt(0) !== 'q') return;
+      var num = parseInt(input.name.slice(1), 10);
       answers[num] = parseInt(input.value, 10);
 
-      // Подсветка выбранной опции
-      const group = form.querySelectorAll(`label[data-q="${num}"]`);
-      group.forEach(lbl => lbl.classList.remove('selected'));
-      const chosenLabel = input.closest('label');
-      if (chosenLabel) chosenLabel.classList.add('selected');
+      var labels = form.querySelectorAll('label[data-q="' + num + '"]');
+      for (var k = 0; k < labels.length; k++) labels[k].classList.remove('selected');
+      var chosen = input.parentNode;
+      if (chosen && chosen.classList) chosen.classList.add('selected');
 
-      // Сброс сообщения об ошибке
-      const err = document.getElementById('errorMsg');
+      var err = document.getElementById('errorMsg');
       if (err) err.textContent = '';
+    };
+  }
+
+  function startTest() {
+    renderQuiz();
+    showScreen('screen-quiz');
+  }
+
+  function submitQuiz() {
+    var total = questions.length;
+    var missing = [];
+    for (var i = 1; i <= total; i++) {
+      if (!answers[i]) missing.push(i);
     }
-  });
-}
 
-/* --- Отправка --- */
-function submitQuiz() {
-  const total = questions.length;
-  const missing = [];
-  for (let i = 1; i <= total; i++) {
-    if (!answers[i]) missing.push(i);
-  }
+    if (missing.length > 0) {
+      document.getElementById('errorMsg').textContent =
+        'Пожалуйста, ответьте на все вопросы. Осталось: ' + missing.length + '.';
+      var els = document.querySelectorAll('.question');
+      if (els[missing[0] - 1]) {
+        els[missing[0] - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
 
-  if (missing.length > 0) {
-    document.getElementById('errorMsg').textContent =
-      `Пожалуйста, ответьте на все вопросы. Осталось: ${missing.length}.`;
-    const el = document.querySelectorAll('.question')[missing[0] - 1];
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
-  }
-
-  // Подсчёт баллов
-  const scores = characters.map(ch => {
-    const sum = ch.questions.reduce((acc, qn) => acc + (answers[qn] || 0), 0);
-    return { name: ch.name, desc: ch.desc, score: sum };
-  });
-
-  scores.sort((a, b) => b.score - a.score);
-  showResult(scores);
-}
-
-/* --- Показ результата --- */
-function showResult(scores) {
-  const winner = scores[0];
-  const runnerUp = scores[1];
-
-  document.getElementById('resultName').textContent = winner.name;
-
-  let descHtml = winner.desc;
-  if (runnerUp && (winner.score - runnerUp.score) <= 3) {
-    descHtml += `<br><br><em style="color:var(--muted)">Вы — смешанный тип: черты ${winner.name} и ${runnerUp.name} у вас выражены почти одинаково сильно.</em>`;
-  }
-  document.getElementById('resultDesc').innerHTML = descHtml;
-
-  const list = document.getElementById('scoreList');
-  list.innerHTML = scores.map(s => {
-    const percent = Math.round((s.score / MAX_PER_CHARACTER) * 100);
-    return `
-      <div class="score-row">
-        <div class="score-name">${s.name}</div>
-        <div class="score-bar"><div class="score-fill" data-width="${percent}"></div></div>
-        <div class="score-val">${s.score}/${MAX_PER_CHARACTER}</div>
-      </div>`;
-  }).join('');
-
-  showScreen('screen-result');
-
-  // Плавная анимация полосок: сначала 0, затем нужная ширина
-  requestAnimationFrame(() => {
-    list.querySelectorAll('.score-fill').forEach(el => {
-      el.style.width = el.dataset.width + '%';
+    var scores = characters.map(function (ch) {
+      var sum = 0;
+      for (var i = 0; i < ch.questions.length; i++) {
+        sum += answers[ch.questions[i]] || 0;
+      }
+      return { name: ch.name, desc: ch.desc, score: sum };
     });
-  });
-}
 
-/* --- Рестарт --- */
-function restart() {
-  Object.keys(answers).forEach(k => delete answers[k]);
-  const form = document.getElementById('quizForm');
-  if (form) form.reset();
-  document.getElementById('errorMsg').textContent = '';
-  document.getElementById('scoreList').innerHTML = '';
-  showScreen('screen-start');
-}
+    scores.sort(function (a, b) { return b.score - a.score; });
+    showResult(scores);
+  }
+
+  function showResult(scores) {
+    var winner = scores[0];
+    var runnerUp = scores[1];
+
+    document.getElementById('resultName').textContent = winner.name;
+
+    var descHtml = winner.desc;
+    if (runnerUp && (winner.score - runnerUp.score) <= 3) {
+      descHtml += '<br><br><em style="color:var(--muted)">' +
+        'Вы — смешанный тип: черты ' + winner.name + ' и ' + runnerUp.name +
+        ' у вас выражены почти одинаково сильно.</em>';
+    }
+    document.getElementById('resultDesc').innerHTML = descHtml;
+
+    var list = document.getElementById('scoreList');
+    var html = '';
+    for (var i = 0; i < scores.length; i++) {
+      var s = scores[i];
+      var percent = Math.round((s.score / MAX_PER_CHARACTER) * 100);
+      html += '<div class="score-row">' +
+                '<div class="score-name">' + s.name + '</div>' +
+                '<div class="score-bar"><div class="score-fill" data-width="' + percent + '"></div></div>' +
+                '<div class="score-val">' + s.score + '/' + MAX_PER_CHARACTER + '</div>' +
+              '</div>';
+    }
+    list.innerHTML = html;
+
+    showScreen('screen-result');
+
+    // Анимация полосок
+    setTimeout(function () {
+      var fills = list.querySelectorAll('.score-fill');
+      for (var j = 0; j < fills.length; j++) {
+        fills[j].style.width = fills[j].getAttribute('data-width') + '%';
+      }
+    }, 50);
+  }
+
+  function restart() {
+    answers = {};
+    var form = document.getElementById('quizForm');
+    if (form) { form.innerHTML = ''; form.onchange = null; }
+    document.getElementById('errorMsg').textContent = '';
+    document.getElementById('scoreList').innerHTML = '';
+    showScreen('screen-start');
+  }
+
+  /* ==================== ПРИВЯЗКА КНОПОК ==================== */
+
+  function init() {
+    var startBtn = document.getElementById('startBtn');
+    var submitBtn = document.getElementById('submitBtn');
+    var restartBtn = document.getElementById('restartBtn');
+
+    if (startBtn) startBtn.addEventListener('click', startTest);
+    if (submitBtn) submitBtn.addEventListener('click', submitQuiz);
+    if (restartBtn) restartBtn.addEventListener('click', restart);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 </script>
 </body>
 </html>
